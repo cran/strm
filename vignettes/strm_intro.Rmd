@@ -1,0 +1,222 @@
+---
+title: "An Introduction to strm"
+output: rmarkdown::html_vignette
+header-includes:
+   - \usepackage{float}
+vignette: >
+  %\VignetteIndexEntry{Intro to strm}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 5, fig.width = 8, message = TRUE, warning = FALSE)
+```
+
+
+```{r, warning=FALSE, message=FALSE}
+#load libraries
+#load strm
+library(strm)
+library(rmarkdown)
+#load package dependencies for the vignette
+library(tidyr)
+library(dplyr)
+library(rgdal)
+library(spdep)
+library(rgeos)
+library(sf)
+library(splm)
+library(knitr)
+library(Ecdat)
+```
+
+`strm` is an `R` package that fits spatio-temporal regression model based on Chi & Zhu *Spatial Regression Models for the Social Sciences* (2019). The approach here fits a spatial error model while incorporating a temporally lagged response variable and temporally lagged explanatory variables.
+
+This package builds on the `errorsarlm()` function from the `spatialreg` package.
+
+This package is still under development. Please report bugs or constructive tips to issues [here](https://github.com/mkamenet3/strm/issues).
+
+
+#Introduction
+
+
+Fit a spatial error model but include a temporally lagged response variable, temporally lagged explanatory variable, and temporally and spatially lagged explanatory variables.
+
+Spatial error model at time $t$:
+
+$$Y_t = X_t \beta + u_t, u_t=\rho Wu_t + \varepsilon$$
+
+Adding in a temporally lagged response variable and temporally lagged explanatory variable:
+
+$$Y_t = X_t\beta_t + \beta_2Y_{t-1} + X_{t-1}\beta_3 + u_t, u_t=\rho Wu_t + \varepsilon$$
+
+
+This becomes:
+
+$$Y_t = Y_{t-1} \beta_2 + \rho W Y_t - \rho\beta_2 WY_{t-1} + X_t \beta_1 + X_{t-1}\beta_3 - W X_t \rho \beta_1 -WX_{t-1} \rho \beta_3 + \varepsilon$$
+
+
+##Example 1: Produce in the United States
+
+(This example has been adapted from the `splm` package vignette.)
+
+
+The first data set we will use is the **Produc** data set from the `Ecdat` package. This data set is a panel of United States production data from 1970-1986. There are 816 observations by county in the United States. The variables we will use are:
+
+- `year`: year
+- `state`: state in the United States
+- `gsp`:
+- `pcap`: private capital stock.
+- `pc`: public capital.
+- `emp`: labor input measured by employment in non-agricultural payrolls.
+- `unemp`: state unemployment rate.
+
+We also load **usaww** from the `splm` package, a spatial weights matrix of the 48 contintental United States based on second-order neighbors.
+
+
+```{r}
+#load data example
+data("Produc")
+data("usaww")
+
+#explore the data structures
+str(Produc)
+str(usaww)
+
+```
+
+###Single Year Lag
+
+We next convert the spatial weights matrix to a list of spatial weights using the `mat2listw()` function from the `spdep` package and check the `class()` of the object:
+
+```{r}
+#create list of spatial weights
+usalw <- mat2listw(usaww)
+class(usalw)
+```
+
+Next, we perform the spatio-temporal regression model. We first create a formula using `as.formula()`. For this model, our response is `log(gsp)` and our explanatory variables are `log(pcap), log(pc), log(emp), unemp`.
+
+For this analysis, we will limit the data to only 1970 and 1971 - two time periods.
+
+We use the `strm()` function from the `strm` package. The first argument is the model formula. Given that the data is in *long* format, `strm` will create the lagged values for you as well as the lagged response in the right-hand side of the model. The next argument is `id`, which we set to "state" as each observation is taken at the state level. We then specify the name of the data set (`data=Produc`), the list of spatial weights (`listw = usalw`), `time=2`, we tell `strm` that the data is in *long* format by setting `wide=FALSE`, and lastly we pass an argument to filter observations where `year` is equal to either 1970 or 1971 (2 time periods).
+
+
+
+```{r}
+formula1 <-as.formula(log(gsp)  ~ log(pcap) + log(pc) + log(emp) + unemp)
+out <- strm(formula1, id="state", data=Produc, listw = usalw, time=2,wide=FALSE,
+            filter_options="year==1970 | year==1971")
+
+summary(out)
+
+```
+
+From the model summary output, we see that `strm` has included lagged variables (\*.Tlag1) for each of the explanatory variables initially specified (`log(pcap), log(pc), log(emp), unemp`), as well as a lagged variable for the response (`log(gsp)`).
+
+
+###With 2 Lags
+
+As the number of time periods in the data increase, so do the number of lags. If we now use the same model, but instead include an additional year (1972) and set `time=3`.
+
+```{r}
+formula2 <-as.formula(log(gsp)  ~ log(pcap) + log(pc) + log(emp) + unemp)
+out <- strm(formula2, id="state", data=Produc, listw= usalw, time=3,
+            wide=FALSE,filter_options="year==1970 | year==1971 | year ==1972")
+
+```
+
+
+After executing the `strm()` model, we apply the `summary()` function to the results object, `out`.
+
+```{r}
+summary(out)
+
+```
+
+From the model summary output, we see that `strm` has now included two lagged variables (\*.Tlag1 and \*.Tlag2) for each of the explanatory variables initially specified, as well as two lags for the response variable.
+
+##Example 2: Minor Civil Divisions in Wisconsin
+
+We use the example from *Spatial Regression Models for the Social Sciences* Chi & Zhu (2019). The example uses population growth data from 2000 to 2010. Data are at the minor civil division (MCD) level in Wisconsin. There are two years of data: 2000 and 2010. The variables we will use are:
+
+- `LNP1000`: population growth from 2000 to 2010.
+- `LNP0090`: population growth from 1990 to 2000.
+- `POLD00`: percentage of the old population (age sixty-five and older) in 2000.
+- `POLD90`: percentage of the old population (age sixty-five and older) in 1990.
+
+We load the `sptdmg3` .RData file that comes with the `strm` package using `data(sptdmg3)` and explore its `class()` and `names()`: 
+
+```{r}
+data(sptdmg3)
+class(sptdmg3)
+names(sptdmg3)
+```
+
+
+First, fit a standard linear regression model with population growth from 2000 to 2010 as the response variable and population growth from 1990 to 2000, the old population in 2000, and the old population in 1990 as the explanatory variables.
+
+
+
+
+```{r}
+formula2 <- as.formula(LNP1000 ~ LNP0090 + POLD00 + POLD90)
+m2 <- lm(formula2, data = sptdmg3)
+summary(m2)
+
+```
+
+
+
+We first convert the `SpatialPolygonsDataFrame` to a simple features or `sf` object. We use the `st_as_sf()` function from the `sf` package. 
+
+
+
+```{r}
+#convert to simple features
+sptdmg3_sf <- sf::st_as_sf(sptdmg3)
+class(sptdmg3_sf)
+```
+
+
+Next, we create a spatial weights matrix based on 4-nearest neighbors. We extract the coordinates from the MCD centroids using `st_centroid()` to extract the centroid of each MCD and `st_coordinates()` to extract the coordinates. We then use `knearneigh()` from the `spdep` package and specify `k=4` to create a matrix of the 4 nearest neighbors; `knn2nb()` creates a neighborhood structure object and `nb2listw()` creates a spatial weights list, where we set the style to be row-standardized weights and the zero policy to be `TRUE`. Finally, we plot the MCD and their neighbors.
+
+```{r}
+#knn4
+coords <-st_coordinates(st_centroid(sptdmg3_sf)) #extract centroid of each  minor civil division
+col.knn <- knearneigh(coords, k=4)
+nbknn <- knn2nb(col.knn, row.names = sptdmg3$STFID)
+listwk <- nb2listw(nbknn, style="W")
+plot(sptdmg3, main="Wisconsin: 4 Nearest-Neighbors"); plot(nbknn, coords,col="forestgreen", add=TRUE)
+```
+
+
+We are now ready to perform the spatio-temporal regression model. In this example, the data is already in **WIDE** format, meaning that every variable-year is a column in the dataset. Because of this, we directly include the lagged variables for all of the covariates as well as the lagged variable for the response, just as we had done in the simple linear model above.
+
+```{r}
+#since this data is in wide format, include temporal lag for both explanatory and response variable manually
+res <- strm(formula2, id="STFID", data=sptdmg3_sf, listw = listwk, time=2,wide=TRUE)
+summary(res)
+```
+
+
+
+
+```{r test, echo=FALSE, include=FALSE, eval=FALSE}
+moran.test(sptdmg3$LNP1000, listwk, alternative = "two.sided")
+moran.test(sptdmg3$LNP0090, listwk, alternative = "two.sided")
+moran.test(sptdmg3$POLD00, listwk, alternative = "two.sided")
+moran.test(sptdmg3$PUNMP00, listwk, alternative = "two.sided")
+moran.test(sptdmg3$ACSAIR, listwk, alternative = "two.sided")
+moran.test(sptdmg3$PFRST, listwk, alternative = "two.sided")
+moran.test(sptdmg3$DEVPB, listwk, alternative = "two.sided")
+
+formulatest <- as.formula(LNP1000 ~ LNP0090 + POLD00 + PUNMP00 + ACSAIR + PFRST + DEVPB )
+m2 <- lm(formulatest, data = sptdmg3)
+summary(m2)
+
+moran.test(m2$residuals, listwk, alternative = "two.sided")
+```
+
+
