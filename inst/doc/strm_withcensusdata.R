@@ -6,12 +6,11 @@ knitr::opts_chunk$set(echo = TRUE, fig.height = 5, fig.width = 8, message = TRUE
 #load strm
 library(strm)
 library(rmarkdown)
-library(knitr)
 #load package dependencies for the vignette
 library(tidyr)
+library(gt)
 library(dplyr)
 library(ggplot2)
-library(broom)
 library(patchwork)
 library(purrr)
 library(rgdal)
@@ -36,6 +35,8 @@ wi <- wi_raw %>%
            feemp_prct = B23022_026/B23022_001,
            year=id,
            logpov = log(pov_prct)) 
+
+st_crs(wi) = 4326
 class(wi)
 str(wi)
 
@@ -281,8 +282,24 @@ summary(out2)
 
 
 ## -----------------------------------------------------------------------------
-knitr::kable(tidy(out$res), digits=3, caption="Long Format Model")
-knitr::kable(tidy(out2), digits= 3,caption="Wide Format Model")
+out_coefs <- c(as.vector(out$res$coefficients), out$res$lambda)
+out_ses <- c(as.vector(out$res$rest.se),out$res$lambda.se)
+out_names <- c(attributes(out$res$coefficients)[[1]], "lambda")
+
+out2_coefs <- c(as.vector(out2$coefficients), out2$lambda)
+out2_ses <- c(as.vector(out2$rest.se), out2$lambda.se)
+out2_names <- c(attributes(out2$coefficients)[[1]], "lambda")
+
+out_table <- rbind.data.frame(cbind.data.frame(Term=out_names, Estimate=out_coefs, SE=out_ses, format=rep("Long format",length(out_names))),
+                              cbind.data.frame(Term=out2_names, Estimate=out2_coefs, SE=out2_ses,format=rep("Wide format",length(out2_names))))
+
+out_table %>%
+  gt(groupname_col = c("format")) %>%
+  tab_header(title="Comparison of Long and Wide format Output") %>%
+  fmt_number(columns = vars(Estimate, SE),  decimals = 2) %>%
+  cols_label(Term = md("**Term**"), Estimate=md("**Estimate**"), SE=md("**SE**"))
+
+
 
 ## ---- eval=FALSE--------------------------------------------------------------
 #  #load tidycensus
