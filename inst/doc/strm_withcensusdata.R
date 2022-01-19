@@ -36,7 +36,7 @@ wi <- wi_raw %>%
            year=id,
            logpov = log(pov_prct)) 
 
-st_crs(wi) = 4326
+wi <- st_transform(wi, 4326)
 class(wi)
 str(wi)
 
@@ -296,7 +296,7 @@ out_table <- rbind.data.frame(cbind.data.frame(Term=out_names, Estimate=out_coef
 out_table %>%
   gt(groupname_col = c("format")) %>%
   tab_header(title="Comparison of Long and Wide format Output") %>%
-  fmt_number(columns = vars(Estimate, SE),  decimals = 2) %>%
+  fmt_number(columns = c(Estimate, SE),  decimals = 2) %>%
   cols_label(Term = md("**Term**"), Estimate=md("**Estimate**"), SE=md("**SE**"))
 
 

@@ -215,7 +215,6 @@ library(rgdal)
 library(spdep)
 library(rgeos)
 library(sf)
-library(splm)
 library(knitr)
 library(Ecdat)
 </code></pre>
@@ -244,7 +243,7 @@ library(Ecdat)
 
 <h2>Example 1: Produce in the United States</h2>
 
-<p>(This example has been adapted from the <code>splm</code> package vignette.)</p>
+<p>(This example has been adapted from the <a href="https://cran.r-project.org/src/contrib/Archive/splm/"><code>splm</code></a> package vignette.)</p>
 
 <p>The first data set we will use is the <strong>Produc</strong> data set from the <code>Ecdat</code> package. This data set is a panel of United States production data from 1970-1986. There are 816 observations by county in the United States. The variables we will use are:</p>
 
@@ -258,7 +257,7 @@ library(Ecdat)
 <li><code>unemp</code>: state unemployment rate.</li>
 </ul>
 
-<p>We also load <strong>usaww</strong> from the <code>splm</code> package, a spatial weights matrix of the 48 continental United States based on second-order neighbors.</p>
+<p>We also load <strong>usaww</strong> (originally from the <a href="https://cran.r-project.org/src/contrib/Archive/splm/"><code>splm</code></a> package), a spatial weights matrix of the 48 continental United States based on second-order neighbors.</p>
 
 <pre><code class="r">#load data example
 data(&quot;Produc&quot;)

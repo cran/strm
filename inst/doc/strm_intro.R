@@ -13,7 +13,6 @@ library(rgdal)
 library(spdep)
 library(rgeos)
 library(sf)
-library(splm)
 library(knitr)
 library(Ecdat)
 

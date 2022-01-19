@@ -6,6 +6,7 @@
 
 ## News
 
+- 2022-01-10: Resolved [issue #38](https://github.com/mkamenet3/strm/issues/38) with patch 0.1.3.
 - 2021-03-21: Resolved [issue #34](https://github.com/mkamenet3/strm/issues/34) with patch 0.1.2.
 
 ## Installation
@@ -45,10 +46,8 @@ Package imports include:
     
 Package suggests include:
 
-    - splm (>= 1.4.11),
     - spdep (>= 1.1-3),
     - sf (>= 0.9-4),
-    - Ecdat (>= 0.3-7),
     - tidycensus (>= 0.9.9),
     - ggplot2 (3.3.2),
     - patchwork (>= 1.0.1),
@@ -64,7 +63,7 @@ devtools::install_github("mkamenet3/strm")
 ```
 
   <!-- badges: start -->
-  [![Travis build status](https://travis-ci.com/mkamenet3/strm.svg?branch=master)](https://travis-ci.com/mkamenet3/strm)
+  [![Travis build status](https://app.travis-ci.com/mkamenet3/strm.svg?branch=master&status=passed)](https://app.travis-ci.com/github/mkamenet3/strm)
   
   <!-- badges: end -->
 <!--[![Build Status](https://travis-ci.com/mkamenet3/strm.svg?token=aPo4kopCe3udvbX77YvH&branch=master)](https://travis-ci.com/mkamenet3/strm)-->
